@@ -45,6 +45,8 @@ The NodeJS standard library has several operations that are called blocking oper
 
 1. Explore the code in "operations/blocking.js" and "operations/nonblocking.js". For which code will the function moreWork() get executed. Why?
 
+In summary, the moreWork() function will get executed in both codes. However, the timing will differ. In blocking.js, it will run after the file is read, while in nonblocking.js, it will run before the file reading completes.
+
 One must be careful when writing concurrent scripts in Node.js. If actions performed in later stages are related to actions related in previous stages or vice-versa then the program will be in an error state. 
 For example, consider the code in "operations/syncdelete.js".
 
@@ -59,24 +61,56 @@ When *setTimeout(callback, ms)* invoked, Node puts a *callback* in the timer pha
 **For you to do**:
 
 1. In "eventloop/timer.js", what will be the order of execution?
+- foo
+- baz
+- foo
+- baz
+- 2 : bar
+- 1 : bar
+
+
 
 2. How many callbacks will the timers phase queue have after the script is run? 
+- So, the timers phase queue will have 2 callbacks after the script is run.
 
 All I/O operations (e.g., read a file) run in the poll phase. The poll phase performs an I/O operation and puts all callbacks associated with the I/O operation in its queue. When the I/O operation completes, it executes the callbacks in the queue. 
 
 **For you to do**:
 1. In "eventloop/poll.js", which phase of the event loop will contain callback functions? What will they be?
+- The phase of the event loop that will contain callback functions is the Poll Phase.
+- The callback function that will be queued in the Poll Phase is the anonymous function passed to fs.readFile inside the someAsyncOperation function
 2. What will be the execution order?
+- The execution order will be:
+- foo
+- done
+- Either Data: <contents_of_the_file> or Read Error, depending on the file read outcome.
 
 The poll phase is actually a blocking phase. If the callback queue associated with it is empty, it blocks the event loop till the earliest scheduled callback in the timers queue.
 
 **For you to do**:
 1. Run the script "eventloop/poll_timer.js". Explain the order of execution in terms of the messages you see in the console.
+- Expected order of console messages:
+- someAsyncOperation
+- ~105ms have passed since I was scheduled
+
+
 2. Change "Date.now() - startCallback < 10" in line 21 to "Date.now() - startCallback < 150". Will the order of execution change?
+- yes
+- it will be reversed
+
 3. Set timeout to 0. Will the order of execution change?
+- Expected order of console messages:
+
+- someAsyncOperation
+- 150ms have passed since I was scheduled
 
 **For you to do**:
 1. Run the script in "eventloop/immediate.js". What order of execution do you see in terms of the messages being logged.
+- Expected order of console messages:
+
+- data (Content of the file test.txt)
+- I was scheduled to run immediately
+- 5ms have passed since I was scheduled (It might be slightly more than 5ms due to execution time.)
 2. Change the script such that the immediate callback runs first.
 
 The *process.nextTick()* API allows us to schedule tasks before the event loop.
